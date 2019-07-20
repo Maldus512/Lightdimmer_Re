@@ -1,15 +1,3 @@
-/*
- * File:   newmainXC16.c
- * Author: HSW - SW Laptop
- *
- * Created on 14 aprile 2019, 18.51
- */
-
-
-// PIC16F1508 Configuration Bit Settings
-
-// 'C' source line config statements
-
 // CONFIG1
 #pragma config FOSC = INTOSC    // Oscillator Selection Bits (INTOSC oscillator: I/O function on CLKIN pin)
 #pragma config WDTE = OFF       // Watchdog Timer Enable (WDT disabled)
@@ -30,107 +18,219 @@
 
 // #pragma config statements should precede project file includes.
 // Use project enums instead of #define for ON and OFF.
-
+ #define _XTAL_FREQ 16000000
 #include <xc.h>
+#include "hardwareprofile.h"
+#include "state.h"
 
+model_t state = {0};
+
+
+void display_number(int number, uint8_t side) {
+    int left, right, todisplay;
+    left = number/10;
+    right = number%10;
+    
+    VERT_BOT_LEFT = 1;
+    VERT_BOT_RIGHT = 1;
+    VERT_TOP_LEFT = 1;
+    VERT_TOP_RIGHT = 1;
+    HORZ_BOT = 1;
+    HORZ_MID = 1;
+    HORZ_TOP = 1;
+    POINT = 1;
+    ACTIVATE_1 = 0;
+    ACTIVATE_2 = 0;
+    
+    if (side == 0) {
+        ACTIVATE_1 = 1;
+        todisplay = left;
+    } else {
+        ACTIVATE_2 = 1;
+        todisplay = right;
+    }
+    
+    switch(todisplay) {
+        case 0:
+            VERT_BOT_LEFT = 0;
+            VERT_BOT_RIGHT = 0;
+            VERT_TOP_LEFT = 0;
+            VERT_TOP_RIGHT = 0;
+            HORZ_BOT = 0;
+            HORZ_TOP = 0;
+            break;
+        case 1:
+            VERT_BOT_RIGHT = 0;
+            VERT_TOP_RIGHT = 0;
+            break;
+        case 2:
+            VERT_TOP_RIGHT = 0;
+            VERT_BOT_LEFT = 0;
+            HORZ_TOP = 0;
+            HORZ_BOT = 0;
+            HORZ_MID = 0;
+            break;
+        case 3:
+            VERT_TOP_RIGHT = 0;
+            VERT_BOT_RIGHT = 0;
+            HORZ_TOP = 0;
+            HORZ_BOT = 0;
+            HORZ_MID = 0;
+            break;
+        case 4:
+            VERT_TOP_RIGHT = 0;
+            VERT_BOT_RIGHT = 0;
+            VERT_TOP_LEFT = 0;
+            HORZ_MID = 0;
+            break;
+        case 5:
+            VERT_TOP_LEFT = 0;
+            VERT_BOT_RIGHT = 0;
+            HORZ_TOP = 0;
+            HORZ_BOT = 0;
+            HORZ_MID = 0;
+            break;
+        case 6:
+            VERT_TOP_LEFT = 0;
+            VERT_BOT_LEFT = 0;
+            VERT_BOT_RIGHT = 0;
+            HORZ_TOP = 0;
+            HORZ_BOT = 0;
+            HORZ_MID = 0;
+            break;
+        case 7:
+            VERT_TOP_RIGHT = 0;
+            VERT_BOT_RIGHT = 0;
+            HORZ_TOP = 0;
+            break;
+        case 8:
+            VERT_TOP_LEFT = 0;
+            VERT_TOP_RIGHT = 0;
+            VERT_BOT_LEFT = 0;
+            VERT_BOT_RIGHT = 0;
+            HORZ_TOP = 0;
+            HORZ_BOT = 0;
+            HORZ_MID = 0;
+            break;
+        case 9:
+            VERT_TOP_LEFT = 0;
+            VERT_TOP_RIGHT = 0;
+            VERT_BOT_RIGHT = 0;
+            HORZ_TOP = 0;
+            HORZ_BOT = 0;
+            HORZ_MID = 0;
+            break;            
+    }
+    
+}
 
 void initTimer() {
     
-    OPTION_REGbits.TMR0CS = 0;  // Clock source (internal)
+    OPTION_REGbits.TMR0CS = 0;  // Clock source (internal 16MHz)
     OPTION_REGbits.PSA = 0; // Prescaler assignment (tmr0)
     OPTION_REGbits.PS = 0b111; // 1:256 prescaler
-    /* Low Frequency internal oscillator, 31 kHz*/
-    
-    
-//    T0CON1bits.T0CS = 0b100;
-//    /* Prescaler 1:1 */
-//    T0CON1bits.T0CKPS = 0b0000;
-//    T0CON1bits.T0ASYNC = 1;
-//    T0CON1bits.T0CKPS = 0b0000;
-//    T0CON0bits.T016BIT = 0;
-
-    /* By running 31 times the timer should be 1 ms */
-    
      
     INTCONbits.T0IE = 1;
     INTCONbits.GIE = 1;
-    TMR0bits.TMR0 = 0xFF - 31 + 1;
+    TMR0bits.TMR0 = 0xFF - 15 + 1;
     INTCONbits.TMR0IF = 0;
     
 }
 
+void init_gpio() {
+    //IOCANbits.IOCAN4 = 1;
+    //IOCAPbits.IOCAP5 = 1;
+    
+    ANSELA = 0;
+    ANSELB = 0;
+    ANSELC = 0;
+    
+    VERT_BOT_LEFT_TRIS = 0;
+    VERT_BOT_RIGHT_TRIS = 0;
+    VERT_TOP_LEFT_TRIS = 0;
+    VERT_TOP_RIGHT_TRIS = 0;
+    HORZ_BOT_TRIS = 0;
+    HORZ_MID_TRIS = 0;
+    HORZ_TOP_TRIS = 0;
+    POINT_TRIS = 0;
+    LOAD_TRIS = 0;
+    BUZZER_TRIS = 0;
+    ACTIVATE_1_TRIS = 0;
+    ACTIVATE_2_TRIS = 0;
+    
+    PULSE_1_TRIS = 1;
+    PULSE_2_TRIS = 1;
+    BUTTON_TRIS = 1;
+}
+
+int  counter_ac = 0;
 
 void interrupt isr(void)
 {
-    static int count_1s = 0;
+    static uint16_t counter_display = 0;
+    static uint8_t side = 0;
     
     if (INTCONbits.TMR0IF) {
-        count_1s = 1;
+        TMR0bits.TMR0 = 0xFF - 15 + 1;
         INTCONbits.TMR0IF = 0;
-    } 
+        
+        if (++counter_display >= 10) {
+            display_number(state.dutycycle, side);
+            side = 1 - side;
+            counter_display = 0;
+        }
+        
+        if (++counter_ac >= 10) {
+            if (state.onoff) {
+                LOAD = 1;
+                __delay_us(10);
+                LOAD = 0;
+            } else {
+                LOAD = 0;
+            }
+            counter_ac = 0;
+        }
+    }
 }
 
 
 int main(void) {
-    int x = 0, y;
+    uint8_t pulse1, pulse2, button;
     
     OSCCONbits.IRCF = 0b1111;
     OSCCONbits.SCS = 0b10;
-    
-    ANSELA = 0;
-    ANSELC = 0;
-    TRISCbits.TRISC0 = 0;
-    TRISCbits.TRISC1 = 0;
-    TRISCbits.TRISC2 = 0;
-    TRISCbits.TRISC3 = 0;
-    TRISCbits.TRISC4 = 0;
-    TRISCbits.TRISC7 = 0;
-    TRISCbits.TRISC6 = 0;
-    TRISBbits.TRISB4 = 0;
-    TRISBbits.TRISB5 = 0;
-    TRISBbits.TRISB6 = 0;
-    TRISBbits.TRISB7 = 0;
-    TRISAbits.TRISA2 = 0;
-
-    TRISAbits.TRISA4 = 1;
-    TRISAbits.TRISA5 = 1;
-    TRISCbits.TRISC5 = 1;
-
-    
-    LATCbits.LATC0 = 1; // riga verticale in alto a dx
-    LATCbits.LATC1 = 1; // riga verticale in basso a dx
-    LATCbits.LATC2 = 1; // riga in basso
-    LATCbits.LATC3 = 1; // Common anode 1
-    LATCbits.LATC4 = 0; // LED (e forse carico)
-    LATCbits.LATC7 = 0; // Buzzer
-    LATCbits.LATC6 = 0; // Common anode 2
-    
-    LATBbits.LATB4 = 0; // riga verticale in basso a sx
-    LATBbits.LATB5 = 1; // riga verticale in alto a sx
-    LATBbits.LATB6 = 0; // riga in mezzo
-    LATBbits.LATB7 = 0; // pallino
-    LATAbits.LATA2 = 1; // riga in alto
-    
-    LATAbits.LATA4 = 1; // Stato 1 del trimmer
-    LATAbits.LATA5 = 1; // Stato 2 del trimmer
-    LATCbits.LATC5 = 1; // Tasto del trimmer
-    
-    initTimer();
-    
-    while(1) {
-        y = PORTAbits.RA4;
-        LATCbits.LATC4 = y;
-        x++;
-        x--;
-        y = PORTAbits.RA5;
-        LATCbits.LATC0 = y;
-        x++;
-        x--;
-        y = PORTCbits.RC5;
-        LATCbits.LATC1 = y;
-        x++;
-        x--;
         
+    unsigned long counter = 0;
+    initTimer();
+    init_gpio();
+    while(1) {
+        pulse1 = PULSE_1;
+        pulse2 = PULSE_2;
+        button = BUTTON;
+        
+        if (pulse1 != state.last_pulse_1) {
+            if (state.last_pulse_2 == pulse1)
+                counter_ac++;
+            state.last_pulse_1 = pulse1;
+            asm("nop");
+            asm("nop");
+            asm("nop");
+        }
+        if (pulse2 != state.last_pulse_2) {
+            if (state.last_pulse_1 == pulse2)
+                counter_ac--;
+            state.last_pulse_2 = pulse2;
+            asm("nop");
+            asm("nop");
+            asm("nop");
+        }
+        if (button == 0 && state.last_button == 1) {
+            state.onoff = 1-state.onoff;
+        }
+        state.last_button = button;
+        
+        __delay_us(10);
+        counter++;
     }
     return 0;
 }
