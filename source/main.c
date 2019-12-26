@@ -125,22 +125,19 @@ void display_number(int number, uint8_t side) {
 }
 
 void initTimer() {
+    T1CONbits.TMR1ON = 1;
+    T1GCONbits.TMR1GE = 0;
+    T1CONbits.TMR1CS = 0; // TMR1 source is FOSC/4 (instruction frequency)
+    T1CONbits.T1CKPS = 0; // 1:1 prescaler
+    T1GCONbits.T1GSS = 0;
+    PIE1bits.TMR1IE = 1;
+    PIR1bits.TMR1IF = 0;
+    INTCONbits.PEIE = 1;
     
-    OPTION_REGbits.TMR0CS = 0;  // Clock source (internal 16MHz)
-    OPTION_REGbits.PSA = 0; // Prescaler assignment (tmr0)
-    OPTION_REGbits.PS = 0b111; // 1:256 prescaler
-     
-    INTCONbits.T0IE = 1;
     INTCONbits.GIE = 1;
-    TMR0bits.TMR0 = 0xFF - 15 + 1;
-    INTCONbits.TMR0IF = 0;
-    
 }
 
 void init_gpio() {
-    //IOCANbits.IOCAN4 = 1;
-    //IOCAPbits.IOCAP5 = 1;
-    
     ANSELA = 0;
     ANSELB = 0;
     ANSELC = 0;
@@ -163,34 +160,18 @@ void init_gpio() {
     BUTTON_TRIS = 1;
 }
 
-int  counter_ac = 0;
+uint8_t  counter_ac = 0;
+static int counter_display = 0;
+static uint8_t side = 0;
+
+const uint16_t period = 0xFFFF - 40170;
 
 void interrupt isr(void)
 {
-    static uint16_t counter_display = 0;
-    static uint8_t side = 0;
-    
-    if (INTCONbits.TMR0IF) {
-        TMR0bits.TMR0 = 0xFF - 15 + 1;
-        INTCONbits.TMR0IF = 0;
-        
-        if (++counter_display >= 10) {
-            display_number(state.dutycycle, side);
-            side = 1 - side;
-            counter_display = 0;
-        }
-        
-        if (++counter_ac >= 10) {
-            if (state.onoff) {
-                LOAD = 1;
-                __delay_us(10);
-                LOAD = 0;
-            } else {
-                LOAD = 0;
-            }
-            counter_ac = 0;
-        }
-    }
+    TMR1 = period;
+    PIR1bits.TMR1IF = 0;
+
+    LOAD = state.onoff;
 }
 
 
@@ -199,6 +180,8 @@ int main(void) {
     
     OSCCONbits.IRCF = 0b1111;
     OSCCONbits.SCS = 0b10;
+    
+    state.onoff = 1;
         
     unsigned long counter = 0;
     initTimer();
@@ -209,27 +192,37 @@ int main(void) {
         button = BUTTON;
         
         if (pulse1 != state.last_pulse_1) {
-            if (state.last_pulse_2 == pulse1)
-                counter_ac++;
+            if (state.last_pulse_2 == pulse1) {
+                state.dutycycle =  state.dutycycle > 0 ? state.dutycycle - 1 : 10;
+                TMR1 += 1000;
+            }
             state.last_pulse_1 = pulse1;
-            asm("nop");
-            asm("nop");
-            asm("nop");
         }
         if (pulse2 != state.last_pulse_2) {
-            if (state.last_pulse_1 == pulse2)
-                counter_ac--;
+            if (state.last_pulse_1 == pulse2) {
+                state.dutycycle = (state.dutycycle + 1) % 11;
+                TMR1 -= 1000;
+            }
             state.last_pulse_2 = pulse2;
-            asm("nop");
-            asm("nop");
-            asm("nop");
         }
         if (button == 0 && state.last_button == 1) {
             state.onoff = 1-state.onoff;
         }
         state.last_button = button;
         
-        __delay_us(10);
+        if (++counter_display >= 5) {
+            display_number(state.dutycycle, side);
+            side = 1 - side;
+            counter_display = 0;
+        }
+        
+        
+        if (LOAD) {
+            __delay_us(10);
+            LOAD = 0;
+        } else {
+            __delay_us(10);
+        }
         counter++;
     }
     return 0;
