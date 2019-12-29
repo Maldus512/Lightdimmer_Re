@@ -1,6 +1,8 @@
 #ifndef __HARDWAREPROFILE_H__
 #define __HARDWAREPROFILE_H__
 
+#include <xc.h>
+
 #define VERT_TOP_RIGHT       LATCbits.LATC0
 #define VERT_BOT_RIGHT      LATCbits.LATC1
 #define HORZ_BOT            LATCbits.LATC2
