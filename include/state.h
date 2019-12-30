@@ -3,10 +3,8 @@
 #include <stdint.h>
 
 typedef struct {
-    int dutycycle;
+    int counter;
     char onoff;
-    uint8_t last_pulse_1, last_pulse_2;
-    uint8_t last_button;
 } model_t;
 
 #endif
